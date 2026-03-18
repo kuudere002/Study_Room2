@@ -32,6 +32,9 @@
     margin: 0;
     padding: 0;
     box-sizing: border-box;
+    /* 【新增】禁用全局文本选中，让页面像一个真正的 App */
+    user-select: none;
+    -webkit-user-select: none;
 }
 
 body {
@@ -40,6 +43,15 @@ body {
     color: var(--text-primary);
     min-height: 100vh;
     overflow-x: hidden;
+    /* 【新增】全局默认光标为常规箭头 */
+    cursor: default;
+}
+
+/* 【新增】仅允许输入框可以被点击选中和显示文本光标 */
+input, textarea {
+    user-select: text;
+    -webkit-user-select: text;
+    cursor: text;
 }
 
 /* Animated gradient background */
@@ -58,7 +70,7 @@ body {
         var(--bg-dark);
 }
 
-/* Floating particles */
+/* ================= 像素风背景动画组件 ================= */
 .particles {
     position: fixed;
     top: 0;
@@ -70,19 +82,46 @@ body {
     overflow: hidden;
 }
 
-.particle {
+/* 1. 像素雪花 (保持边缘锐利的方块) */
+.pixel-snow {
     position: absolute;
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    animation: float 20s infinite ease-in-out;
+    background: #ffffff;
+    animation: pixelFall linear infinite;
+    /* 核心：关闭模糊抗锯齿，保持像素边缘的绝对锐利 */
+    image-rendering: pixelated;
+    box-shadow: 0 0 4px rgba(255, 255, 255, 0.4);
 }
 
-@keyframes float {
-    0%, 100% { transform: translateY(0) translateX(0) rotate(0deg); opacity: 0.6; }
-    25% { transform: translateY(-100px) translateX(50px) rotate(90deg); opacity: 0.8; }
-    50% { transform: translateY(-50px) translateX(-30px) rotate(180deg); opacity: 0.4; }
-    75% { transform: translateY(-150px) translateX(20px) rotate(270deg); opacity: 0.7; }
+@keyframes pixelFall {
+    0% { transform: translateY(-20px) translateX(0px); opacity: 0; }
+    10% { opacity: 0.7; }
+    80% { opacity: 0.7; }
+    100% { transform: translateY(100vh) translateX(40px); opacity: 0; }
+}
+
+/* 2. 像素云朵 (利用 box-shadow 拼出的块状云朵) */
+.pixel-cloud {
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    /* 主体像素块 */
+    background: rgba(255, 255, 255, 0.04);
+    /* 利用阴影在四周画出像素云的形状 */
+    box-shadow:
+        20px 0 0 rgba(255, 255, 255, 0.04),
+        40px 0 0 rgba(255, 255, 255, 0.04),
+        60px 0 0 rgba(255, 255, 255, 0.04),
+        10px -20px 0 rgba(255, 255, 255, 0.04),
+        30px -20px 0 rgba(255, 255, 255, 0.04),
+        50px -20px 0 rgba(255, 255, 255, 0.04),
+        20px -40px 0 rgba(255, 255, 255, 0.04),
+        40px -40px 0 rgba(255, 255, 255, 0.04);
+    animation: cloudDrift linear infinite;
+}
+
+@keyframes cloudDrift {
+    from { transform: translateX(-200px); }
+    to { transform: translateX(100vw); }
 }
 
 /* Glassmorphism card */
@@ -445,7 +484,7 @@ body {
     font-size: 17px;
 }
 
-/* Room Cards */
+/* ================= Room Cards (稳定纯净的暗场发光版) ================= */
 .rooms-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -457,11 +496,12 @@ body {
 .room-card {
     padding: 28px;
     cursor: pointer;
-    /* 稍微调慢一点动画时间，让挤开的效果更丝滑 */
-    transition: all 0.5s cubic-bezier(0.25, 1, 0.3, 1);
     position: relative;
     overflow: hidden;
     z-index: 1;
+    /* 使用极其稳定的匀速缓动，杜绝闪烁和抽搐 */
+    transition: all 0.4s ease;
+    transform-origin: center center;
 }
 
 .room-card::before {
@@ -473,36 +513,36 @@ body {
     height: 3px;
     background: linear-gradient(90deg, var(--primary), var(--accent-pink), var(--accent-orange));
     opacity: 0;
-    transition: opacity 0.3s;
+    transition: opacity 0.3s ease;
 }
 
-/* ================= 焦点挤压效果 ================= */
-
-/* 1. 当鼠标进入整个自习室大厅网格时，让所有卡片微微缩小、透明度降低，模拟被"挤开"和"失焦" */
+/* 1. 当鼠标进入大厅区域时：其他所有卡片微微缩小、压暗并加上轻微的模糊（纯 CSS 控制，不会引起 Vue 重绘 Bug） */
 .rooms-grid:hover .room-card {
     transform: scale(0.96);
-    opacity: 0.6;
-    filter: grayscale(30%); /* 微微褪色，增强失焦感 */
+    opacity: 0.7;
+    filter: brightness(0.8) blur(1px);
 }
 
-/* 2. 当前被鼠标精准悬停的这块卡片，突破失焦状态：放大、上浮、恢复色彩并加上发光阴影 */
+/* 2. 鼠标精准悬停的目标卡片：放大、浮起、清除模糊，并散发霓虹光晕 */
 .rooms-grid .room-card:hover {
-    transform: translateY(-8px) scale(1.06);
+    transform: translateY(-10px) scale(1.2);
     opacity: 1;
-    filter: grayscale(0%);
+    filter: brightness(1.1) blur(0px); /* 提亮并保持清晰 */
     background: var(--bg-card-hover);
-    z-index: 10; /* 提升层级，盖住周围卡片的边缘 */
+    z-index: 20;
+
+    /* 深邃底影 + 极细发光边框 + 主题色弥散光晕 */
     box-shadow:
         0 20px 40px rgba(0, 0, 0, 0.6),
-        0 0 0 1px var(--primary-light), /* 加上发光边框 */
-        0 0 20px rgba(99, 102, 241, 0.3); /* 弥散光效 */
+        0 0 0 1px var(--primary-light),
+        0 15px 35px rgba(99, 102, 241, 0.35);
 }
 
-/* 保证卡片顶部的彩色进度条特效依然生效 */
 .rooms-grid .room-card:hover::before {
     opacity: 1;
 }
 
+/* 卡片内部图标与文字样式保持不变 */
 .room-card-icon {
     font-size: 48px;
     margin-bottom: 16px;
@@ -646,7 +686,7 @@ body {
     width: 100%;
 }
 
-/* Timer Area */
+/* ================= 纯净且高级的 SVG 番茄钟 ================= */
 .timer-area {
     flex: 1;
     display: flex;
@@ -655,63 +695,69 @@ body {
     justify-content: center;
 }
 
-.timer-container {
-    text-align: center;
-}
-
-.timer-circle-outer {
-    width: 380px;
-    height: 380px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, rgba(99, 102, 241, 0.2) 0%, rgba(168, 85, 247, 0.2) 100%);
-    display: flex;
-    align-items: center;
-    justify-content: center;
+.timer-display {
     position: relative;
+    width: 360px;
+    height: 360px;
     margin-bottom: 48px;
-    box-shadow:
-        0 20px 60px rgba(0, 0, 0, 0.4),
-        inset 0 0 60px rgba(99, 102, 241, 0.1);
-}
-
-.timer-circle-outer::before {
-    content: '';
-    position: absolute;
-    inset: -3px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, var(--primary), var(--accent-pink), var(--accent-orange), var(--accent-cyan));
-    z-index: -1;
-    opacity: 0.5;
-    animation: borderRotate 8s linear infinite;
-}
-
-@keyframes borderRotate {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
-}
-
-.timer-circle-inner {
-    width: 320px;
-    height: 320px;
-    border-radius: 50%;
-    background: linear-gradient(145deg, rgba(30, 30, 40, 0.9) 0%, rgba(20, 20, 30, 0.9) 100%);
     display: flex;
-    flex-direction: column;
     align-items: center;
     justify-content: center;
-    box-shadow: inset 0 4px 30px rgba(0, 0, 0, 0.5);
+    /* 核心：拒绝任何形式的弹性挤压变形 */
+    flex-shrink: 0;
+}
+
+/* 霓虹圆环容器 */
+.progress-ring {
+    position: absolute;
+    top: 0;
+    left: 0;
+    /* 逆时针旋转 90 度，让起点落在 12 点钟正上方 */
+    transform: rotate(-90deg);
+    filter: drop-shadow(0 15px 30px rgba(0,0,0,0.4));
+}
+
+.ring-bg {
+    fill: rgba(20, 20, 30, 0.75);
+    stroke: var(--glass-border);
+    stroke-width: 12;
+}
+
+.ring-progress {
+    fill: none;
+    stroke-width: 12;
+    stroke-linecap: round; /* 圆润的线头 */
+    /* 给进度条填充增加平滑的过渡动画 */
+    transition: stroke-dashoffset 1s linear;
+    filter: drop-shadow(0 0 15px var(--primary-light));
+}
+
+/* 中心时间的沉浸式排版 */
+.timer-text-container {
+    position: relative;
+    z-index: 5;
+    text-align: center;
 }
 
 .timer-time {
     font-size: 80px;
     font-weight: 800;
-    font-variant-numeric: tabular-nums;
-    background: linear-gradient(135deg, #fff 0%, var(--text-secondary) 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    font-variant-numeric: tabular-nums; /* 数字等宽对齐，跳动时不抖动 */
+    color: #ffffff;
     line-height: 1;
     letter-spacing: -2px;
+    transition: all 0.3s ease;
+}
+
+/* 专注时的呼吸光晕效果 */
+.timer-time.glow {
+    text-shadow: 0 0 30px rgba(99, 102, 241, 0.8), 0 0 60px rgba(168, 85, 247, 0.5);
+    animation: textBreathe 2s ease-in-out infinite;
+}
+
+@keyframes textBreathe {
+    0%, 100% { opacity: 0.9; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.02); }
 }
 
 .timer-label {
@@ -721,13 +767,54 @@ body {
     font-weight: 500;
 }
 
-.timer-running .timer-circle-inner {
-    animation: timerGlow 2s ease-in-out infinite;
+/* ================= 企鹅光轨跑道 ================= */
+.penguin-track {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    z-index: 10;
+    pointer-events: none;
+    transition: transform 1s linear;
 }
 
-@keyframes timerGlow {
-    0%, 100% { box-shadow: inset 0 4px 30px rgba(0, 0, 0, 0.5), 0 0 40px rgba(99, 102, 241, 0.2); }
-    50% { box-shadow: inset 0 4px 30px rgba(0, 0, 0, 0.5), 0 0 60px rgba(99, 102, 241, 0.4); }
+/* 坐在圆环正上方的企鹅 */
+.penguin-wrapper {
+    position: absolute;
+    /* 360(宽高) - 166(半径)*2 = 28。因此圆圈顶部离外框有 14px。
+       企鹅高 40px，14 - 20(一半) = -6px，完美居中踩在发光线上！ */
+    top: -6px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 40px;
+    height: 40px;
+    will-change: transform;
+}
+
+/* 跑步状态：启动物理引擎 */
+.penguin-wrapper.is-running .running-penguin {
+    animation: penguinRun 0.4s steps(2) infinite;
+}
+.penguin-wrapper.is-running .foot-left {
+    animation: footRunLeft 0.4s steps(2) infinite;
+}
+.penguin-wrapper.is-running .foot-right {
+    animation: footRunRight 0.4s steps(2) infinite;
+}
+
+@keyframes penguinRun {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-4px); } /* 夸张的上下颠簸感 */
+}
+@keyframes footRunLeft {
+    0%, 100% { transform: translateX(0); }
+    50% { transform: translateX(3px); }
+}
+@keyframes footRunRight {
+    0%, 100% { transform: translateX(0); }
+    50% { transform: translateX(-3px); }
 }
 
 .timer-presets {
@@ -799,6 +886,23 @@ body {
 
 .timer-controls .btn {
     min-width: 140px;
+}
+
+/* ================= 待办事项 Vue 过渡动画 ================= */
+.todo-anim-enter-active,
+.todo-anim-leave-active {
+    transition: all 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.todo-anim-enter-from {
+    opacity: 0;
+    transform: translateX(30px) scale(0.95);
+}
+.todo-anim-leave-to {
+    opacity: 0;
+    transform: translateX(-30px) scale(0.95);
+}
+.todo-anim-leave-active {
+    position: absolute; /* 让删除元素脱离文档流，后续元素能平滑顶上 */
 }
 
 /* Todo Sidebar */

@@ -172,6 +172,7 @@
                              class="room-card glass-card fade-in-up"
                              :class="'delay-' + (index + 1)"
                              @click="joinRoom(room.id)">
+
                             <span class="room-card-icon">{{ roomIcons[index % roomIcons.length] }}</span>
                             <h3>{{ room.name }}</h3>
                             <p>{{ room.description }}</p>
@@ -208,41 +209,65 @@
                 </header>
 
                 <main class="room-main">
-                    <!-- 番茄钟 -->
                     <div class="timer-area">
-                        <div class="timer-container">
-                            <div class="timer-circle-outer" :class="{ 'timer-running': timerRunning }">
-                                <div class="timer-circle-inner">
-                                    <div class="timer-time">{{ formattedTime }}</div>
-                                    <div class="timer-label">{{ timerStatus }}</div>
+                        <div class="timer-display">
+
+                            <svg class="progress-ring" width="360" height="360" viewBox="0 0 360 360">
+                                <defs>
+                                    <linearGradient id="ringGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                        <stop offset="0%" stop-color="#6366F1" />
+                                        <stop offset="50%" stop-color="#A855F7" />
+                                        <stop offset="100%" stop-color="#EC4899" />
+                                    </linearGradient>
+                                </defs>
+                                <circle class="ring-bg" cx="180" cy="180" r="166" />
+                                <circle class="ring-progress" cx="180" cy="180" r="166"
+                                        stroke="url(#ringGradient)"
+                                        :stroke-dasharray="circumference"
+                                        :stroke-dashoffset="dashOffset" />
+                            </svg>
+
+                            <div class="penguin-track" :style="{ transform: 'rotate(' + penguinRotation + 'deg)' }">
+                                <div class="penguin-wrapper" :class="{ 'is-running': timerRunning }">
+                                    <svg class="running-penguin" viewBox="0 0 24 24" width="40" height="40">
+                                        <path d="M10,4 h4 v2 h2 v6 h2 v4 h-2 v4 h-2 v2 h-6 v-2 h-2 v-6 h-2 v-6 h2 v-2 h2 z" fill="#1e1e2e"/>
+                                        <path d="M12,8 h2 v8 h-4 v-4 h2 z" fill="#ffffff"/>
+                                        <rect x="14" y="6" width="2" height="2" fill="#ffffff"/>
+                                        <rect x="15" y="6" width="1" height="1" fill="#0f0f17"/>
+                                        <rect x="16" y="8" width="4" height="2" fill="#f59e0b"/>
+                                        <rect class="foot-left" x="8" y="20" width="4" height="2" fill="#f59e0b"/>
+                                        <rect class="foot-right" x="14" y="20" width="4" height="2" fill="#f59e0b"/>
+                                        <rect class="flipper" x="10" y="10" width="2" height="6" fill="#1e1e2e"/>
+                                    </svg>
                                 </div>
                             </div>
 
-                            <div class="timer-presets">
-                                <button v-for="preset in presets"
-                                        :key="preset"
-                                        class="preset-btn"
-                                        :class="{ active: selectedPreset === preset && !customMode }"
-                                        @click="selectPreset(preset)">
-                                    {{ preset }}分钟
-                                </button>
+                            <div class="timer-text-container">
+                                <div class="timer-time" :class="{ 'glow': timerRunning }">{{ formattedTime }}</div>
+                                <div class="timer-label">{{ timerStatus }}</div>
                             </div>
+                        </div>
 
-                            <div class="custom-time">
-                                <input type="number" v-model="customHours" min="0" max="23" placeholder="时">
-                                <span>:</span>
-                                <input type="number" v-model="customMinutes" min="0" max="59" placeholder="分">
-                                <span>:</span>
-                                <input type="number" v-model="customSeconds" min="0" max="59" placeholder="秒">
-                            </div>
+                        <div class="timer-presets">
+                            <button v-for="p in presets" :key="p" class="preset-btn"
+                                    :class="{ active: !customMode && selectedPreset === p }"
+                                    @click="selectPreset(p)">{{ p }} 分钟</button>
+                        </div>
 
-                            <div class="timer-controls">
-                                <button v-if="!timerRunning" class="btn btn-secondary" @click="startTimer">
-                                    {{ timerPaused ? '继续' : '开始' }}
-                                </button>
-                                <button v-else class="btn btn-primary" @click="pauseTimer">暂停</button>
-                                <button class="btn btn-danger" @click="resetTimer">重置</button>
-                            </div>
+                        <div class="custom-time">
+                            <input type="number" v-model="customHours" min="0" max="23" placeholder="时">
+                            <span>:</span>
+                            <input type="number" v-model="customMinutes" min="0" max="59" placeholder="分">
+                            <span>:</span>
+                            <input type="number" v-model="customSeconds" min="0" max="59" placeholder="秒">
+                        </div>
+
+                        <div class="timer-controls">
+                            <button class="btn btn-primary" v-if="!timerRunning" @click="startTimer">
+                                {{ timerPaused ? '继续专注' : '开始专注' }}
+                            </button>
+                            <button class="btn btn-secondary" v-if="timerRunning" @click="pauseTimer">暂停</button>
+                            <button class="btn btn-ghost" @click="resetTimer">重置</button>
                         </div>
                     </div>
 
@@ -262,23 +287,17 @@
                             <button class="btn btn-primary btn-small" @click="addTodo">添加</button>
                         </div>
 
-                        <div class="todo-list">
-                            <div v-for="todo in todos"
-                                 :key="todo.id"
-                                 class="todo-item"
-                                 :class="{ completed: todo.completed === 1 }">
-                                <div class="todo-checkbox"
-                                     :class="{ checked: todo.completed === 1 }"
-                                     @click="toggleTodo(todo)">
+                        <transition-group name="todo-anim" tag="div" class="todo-list">
+                            <div v-for="todo in todos" :key="todo.id" class="todo-item" :class="{ completed: todo.completed === 1 }">
+                                <div class="todo-checkbox" :class="{ checked: todo.completed === 1 }" @click="toggleTodo(todo)">
                                     <span v-if="todo.completed === 1">✓</span>
                                 </div>
                                 <span class="todo-content">{{ todo.content }}</span>
                                 <button class="todo-delete" @click="deleteTodo(todo.id)">🗑️</button>
                             </div>
-                            <div v-if="todos.length === 0" class="empty-todo">
-                                还没有待办事项~<br>添加一个开始今天的任务吧！
-                            </div>
-                        </div>
+                        </transition-group>
+
+                        <div v-if="todos.length === 0" class="empty-todo">暂无任务，开始规划你的一天吧！</div>
 
                         <div class="stats-card">
                             <div class="stats-title">
@@ -305,23 +324,6 @@
 
         </transition>
     </div>
-
-    <!-- Initialize particles -->
-    <script>
-        const particleContainer = document.getElementById('particles');
-        const colors = ['#6366F1', '#EC4899', '#F97316', '#06B6D4', '#A855F7', '#84CC16'];
-
-        for (let i = 0; i < 30; i++) {
-            const particle = document.createElement('div');
-            particle.className = 'particle';
-            particle.style.left = Math.random() * 100 + '%';
-            particle.style.top = Math.random() * 100 + '%';
-            particle.style.background = colors[Math.floor(Math.random() * colors.length)];
-            particle.style.animationDelay = Math.random() * 20 + 's';
-            particle.style.animationDuration = (15 + Math.random() * 10) + 's';
-            particleContainer.appendChild(particle);
-        }
-    </script>
 
     <script src="/js/api.js"></script>
     <script src="/js/app.js"></script>
