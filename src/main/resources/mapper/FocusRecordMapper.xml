@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.example.study_room2.mapper.FocusRecordMapper">
+    <select id="findByUserId" resultType="FocusRecord">
+        SELECT * FROM focus_record WHERE user_id = #{userId} ORDER BY completed_at DESC
+    </select>
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO focus_record (user_id, room_id, duration_minutes, started_at, completed_at)
+        VALUES (#{userId}, #{roomId}, #{durationMinutes}, #{startedAt}, NOW())
+    </insert>
+</mapper>
